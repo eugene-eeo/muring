@@ -4,11 +4,11 @@
 #include <stddef.h>
 
 typedef struct {
-    void*   mem;
-    void*   r;
-    void*   w;
-    void*   h; // hole pointer
-    size_t  size;
+    void*  mem;
+    size_t r;
+    size_t w;
+    size_t h; // hole pointer
+    size_t size;
 } rb_buffer;
 
 void   rb_buffer_init   (rb_buffer* rb, void* mem, size_t size);
