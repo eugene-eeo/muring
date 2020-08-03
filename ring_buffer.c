@@ -66,6 +66,7 @@ void* rb_buffer_read(rb_buffer* rb, size_t* m, size_t n)
         if (size > 0) {
             ptr = rb->r;
             rb->r += size;
+            goto cleanup;
         }
     } else {
         // Case 2:
@@ -77,9 +78,13 @@ void* rb_buffer_read(rb_buffer* rb, size_t* m, size_t n)
         if (size > 0) {
             ptr = rb->r;
             rb->r += size;
+            goto cleanup;
         }
     }
+    *m = 0;
+    return NULL;
 
+cleanup:
     // fix pointers after consumption
     if (rb->r == rb->w) {
         rb->r = rb->mem;
