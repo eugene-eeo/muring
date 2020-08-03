@@ -20,11 +20,11 @@ int main()
     // Check that rb->r is reset
     char* c = (char*) rb_buffer_reserve(&rb, 6);
     assert(c != NULL);
-    rb_buffer_commit(&rb, 6);
+    rb_buffer_commit(&rb, c + 6);
 
     c = (char*) rb_buffer_reserve(&rb, 2);
     assert(c != NULL);
-    rb_buffer_commit(&rb, 2);
+    rb_buffer_commit(&rb, c + 2);
 
     c = (char*) rb_buffer_read(&rb, &sz, rb.size);
     assert(c != 0);
@@ -38,7 +38,7 @@ int main()
     c[3] = 4;
     c[4] = 5;
     c[5] = 6;
-    rb_buffer_commit(&rb, 6);
+    rb_buffer_commit(&rb, c + 6);
     assert(rb_buffer_total(&rb) == 6);
 
     // cannot alloc any more
@@ -61,7 +61,7 @@ int main()
     c[1] = 8;
     c[2] = 9;
     c[3] = 10;
-    rb_buffer_commit(&rb, 4);
+    rb_buffer_commit(&rb, c + 4);
     assert(rb_buffer_total(&rb) == 5);
 
     for (int i = 6; i < 10 + 1; i++) {

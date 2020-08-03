@@ -8,7 +8,6 @@ void rb_buffer_init(rb_buffer* rb, void* mem, size_t size)
     rb->r = mem;
     rb->w = mem;
     rb->h = mem + size;
-    rb->s = 0;
     rb->size = size;
 }
 
@@ -17,7 +16,6 @@ void* rb_buffer_reserve(rb_buffer* rb, size_t size)
     // There are two possible states:
     //  1) r <= w -- normal setup
     //  2) r >  w -- write overtook read
-    rb->s = size;
     if (rb->r <= rb->w) {
         if ((size_t)(rb->h - rb->w) >= size) {
             return rb->w;
@@ -32,25 +30,16 @@ void* rb_buffer_reserve(rb_buffer* rb, size_t size)
         }
     }
     // not enough space
-    rb->s = 0;
     return NULL;
 }
 
-void rb_buffer_commit(rb_buffer* rb, size_t size)
+void rb_buffer_commit(rb_buffer* rb, void* ptr)
 {
-    if (rb->r <= rb->w) {
-        if ((size_t)(rb->h - rb->w) >= rb->s) {
-            // normal setup with r behind w
-            rb->w += size;
-        } else {
-            // gap
-            rb->h = rb->w;
-            rb->w = rb->mem + size;
-        }
-    } else {
-        rb->w += size;
+    // wraparound, need to update watermark
+    if (ptr < rb->w) {
+        rb->h = rb->w;
     }
-    rb->s = 0;
+    rb->w = ptr;
 }
 
 void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)

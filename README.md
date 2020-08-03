@@ -6,7 +6,7 @@ The API is very simple (it is not thread safe):
     #include <ring_buffer.h>
     void   rb_buffer_init   (rb_buffer* rb, void* mem, size_t size);
     void*  rb_buffer_reserve(rb_buffer* rb, size_t size);
-    void   rb_buffer_commit (rb_buffer* rb, size_t size);
+    void   rb_buffer_commit (rb_buffer* rb, void* ptr);
     void*  rb_buffer_read   (rb_buffer* rb, size_t* m, size_t n);
     size_t rb_buffer_total  (rb_buffer* rb);
 
@@ -17,6 +17,10 @@ the buffer will give you a contiguous slice of memory.
 After using that slice, you then need to _commit_ the
 actual amount of data you wrote -- this usage pattern
 is ~inspired by~ taken from the original BipBuffer API.
+
+**Note:** you cannot nest `reserve` or `commit` functions;
+a reserve inside another reserve may return the same location
+in memory!
 
 More detailed examples:
 Need to first initialise the ring buffer:
@@ -33,10 +37,10 @@ Write:
     if (block == NULL) {
         // handle error (not enough space)
     }
-    // Use block here, actual_size should be <= size,
-    // e.g. fread:
+    // Use block here. The pointer passed to commit
+    // should be <= block + size, e.g.:
     actual_size = fread(block, 1, size, fp);
-    rb_buffer_commit(&rb, actual_size);
+    rb_buffer_commit(&rb, block + actual_size);
 
 Read (up to `max_size` bytes):
 
