@@ -58,7 +58,6 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
 {
     size_t size = 0;
     void* ptr = NULL;
-
     if (rb->w >= rb->r) {
         // Case 1:
         // | r | ... | w |
@@ -66,7 +65,11 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
         if (size > 0) {
             ptr = rb->r;
             rb->r += size;
-            goto cleanup;
+            if (rb->r == rb->w) {
+                rb->r = rb->mem;
+                rb->w = rb->mem;
+                rb->h = rb->mem + rb->size;
+            }
         }
     } else {
         // Case 2:
@@ -78,25 +81,14 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
         if (size > 0) {
             ptr = rb->r;
             rb->r += size;
-            goto cleanup;
+            if (rb->r == rb->h) {
+                // if rb->r reaches 'end', skip ahead
+                // to the front
+                rb->r = rb->mem;
+                rb->h = rb->mem + rb->size;
+            }
         }
     }
-    *actual_size = 0;
-    return NULL;
-
-cleanup:
-    // fix pointers after consumption
-    if (rb->r == rb->w) {
-        rb->r = rb->mem;
-        rb->w = rb->mem;
-        rb->h = rb->mem + rb->size;
-    } else if (rb->r == rb->h) {
-        // if rb->r reaches 'end', skip ahead
-        // to the front
-        rb->r = rb->mem;
-        rb->h = rb->mem + rb->size;
-    }
-
     *actual_size = size;
     return ptr;
 }
