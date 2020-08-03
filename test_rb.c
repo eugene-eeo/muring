@@ -29,9 +29,6 @@ int main()
     c = (char*) rb_buffer_read(&rb, &sz, rb.size);
     assert(c != 0);
     assert(sz == 8);
-    printf("%p\n", rb.mem);
-    printf("%p\n", rb.r);
-    printf("%p\n", rb.w);
 
     c = (char*) rb_buffer_reserve(&rb, 6);
     assert(c != NULL);
@@ -43,6 +40,9 @@ int main()
     c[5] = 6;
     rb_buffer_commit(&rb, 6);
     assert(rb_buffer_total(&rb) == 6);
+
+    // cannot alloc any more
+    assert(rb_buffer_reserve(&rb, 3) == NULL);
 
     c = (char*) rb_buffer_read(&rb, &sz, 5);
     assert(sz == 5);
@@ -56,6 +56,7 @@ int main()
 
     c = (char*) rb_buffer_reserve(&rb, 4);
     assert(c != NULL);
+    assert(c == rb.mem);
     c[0] = 7;
     c[1] = 8;
     c[2] = 9;
@@ -72,4 +73,5 @@ int main()
     b = rb_buffer_read(&rb, &sz, rb.size);
     assert(b == NULL);
     assert(sz == 0);
+    free(buf);
 }
