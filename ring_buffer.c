@@ -54,7 +54,7 @@ void rb_buffer_commit(rb_buffer* rb, size_t size)
     rb->s = 0;
 }
 
-void* rb_buffer_read(rb_buffer* rb, size_t* m, size_t n)
+void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
 {
     size_t size = 0;
     void* ptr = NULL;
@@ -62,7 +62,7 @@ void* rb_buffer_read(rb_buffer* rb, size_t* m, size_t n)
     if (rb->w >= rb->r) {
         // Case 1:
         // | r | ... | w |
-        size = MIN((size_t)(rb->w - rb->r), n);
+        size = MIN((size_t)(rb->w - rb->r), max_size);
         if (size > 0) {
             ptr = rb->r;
             rb->r += size;
@@ -74,14 +74,14 @@ void* rb_buffer_read(rb_buffer* rb, size_t* m, size_t n)
         // (Note: we only get here iff at some point
         //  w was >= r, and h was set to *that* value
         //  of w, so rb->h should be >= rb->r.)
-        size = MIN((size_t)(rb->h - rb->r), n);
+        size = MIN((size_t)(rb->h - rb->r), max_size);
         if (size > 0) {
             ptr = rb->r;
             rb->r += size;
             goto cleanup;
         }
     }
-    *m = 0;
+    *actual_size = 0;
     return NULL;
 
 cleanup:
@@ -97,7 +97,7 @@ cleanup:
         rb->h = rb->mem + rb->size;
     }
 
-    *m = size;
+    *actual_size = size;
     return ptr;
 }
 
