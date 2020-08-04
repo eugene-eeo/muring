@@ -57,9 +57,8 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
     } else {
         // Case 2:
         // ... | w | ... | r | ... | h |
-        // (Note: we only get here iff at some point
-        //  w was >= r, and h was set to *that* value
-        //  of w, so rb->h >= rb->r.)
+        // Note: we only get here iff at some point w was >= r, and h was
+        // set to *that* value of w, so rb->h >= rb->r.
         size = MIN(rb->h - rb->r, max_size);
         rb->r += size;
         if (size > 0 && rb->r == rb->h) {
@@ -67,8 +66,8 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
             rb->h = rb->size;
         }
         // Don't need to check if rb->r == rb->w.
-        // if rb->w == rb->r == 0, it is handled.
-        // Otherwise rb->w < rb->r. (Case 2)
+        // If rb->w == rb->r == 0, it is handled.
+        // Otherwise, rb->w < rb->r. (Case 2)
     }
     *actual_size = size;
     return size > 0 ? ptr : NULL;
