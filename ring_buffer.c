@@ -40,15 +40,14 @@ void* rb_buffer_reserve(rb_buffer* rb, size_t size)
 
 void rb_buffer_commit(rb_buffer* rb, void* ptr, size_t size)
 {
-    void* end = ptr + size;
-    if (end == ptr) {
+    if (size == 0) {
         return;
     }
-    if (end < rb->mem + rb->w) {
+    if (ptr < rb->mem + rb->w) {
         // wraparound, need to update hole
         rb->h = rb->w;
     }
-    rb->w = end - rb->mem;
+    rb->w = ptr - rb->mem + size;
 }
 
 void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
