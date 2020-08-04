@@ -1,7 +1,8 @@
 ## `rb_buffer`
 
-Simple ring-buffer similar in design to a [BipBuffer](https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist).
-The API is very simple (it is not thread safe):
+Simple ring-buffer similar in design to a [BipBuffer](https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist),
+and inspired by [this article](https://andrea.lattuada.me/blog/2019/the-design-and-implementation-of-a-lock-free-ring-buffer-with-contiguous-reservations.html).
+The API is very simple (not thread safe):
 
 ```c
 void   rb_buffer_init   (rb_buffer* rb, void* mem, size_t size);
@@ -52,9 +53,19 @@ Read (up to `max_size` bytes):
 ```c
 size_t sz;
 void* block;
-block = rb_buffer_read(block, *sz, max_size);
+block = rb_buffer_read(&rb, *sz, max_size);
 if (block != NULL) {
     // sz <= max_size
     // do your thing
+}
+```
+
+To empty the buffer:
+
+```c
+size_t sz;
+void* block;
+while ((block = rb_buffer_read(&rb, *sz, rb.size)) != NULL) {
+    // do your thing here
 }
 ```
