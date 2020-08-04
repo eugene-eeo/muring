@@ -13,7 +13,7 @@ typedef struct {
 
 void   rb_buffer_init   (rb_buffer* rb, void* mem, size_t size);
 void*  rb_buffer_reserve(rb_buffer* rb, size_t size);
-void   rb_buffer_commit (rb_buffer* rb, void* ptr);
+void   rb_buffer_commit (rb_buffer* rb, void* ptr, size_t size);
 void*  rb_buffer_read   (rb_buffer* rb, size_t* actual_size, size_t max_size);
 size_t rb_buffer_total  (rb_buffer* rb);
 

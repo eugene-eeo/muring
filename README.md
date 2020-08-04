@@ -7,7 +7,7 @@ The API is very simple (not thread safe):
 ```c
 void   rb_buffer_init   (rb_buffer* rb, void* mem, size_t size);
 void*  rb_buffer_reserve(rb_buffer* rb, size_t size);
-void   rb_buffer_commit (rb_buffer* rb, void* ptr);
+void   rb_buffer_commit (rb_buffer* rb, void* ptr, size_t size);
 void*  rb_buffer_read   (rb_buffer* rb, size_t* m, size_t n);
 size_t rb_buffer_total  (rb_buffer* rb);
 ```
@@ -46,10 +46,9 @@ void* block = rb_buffer_reserve(&rb, size);
 if (block == NULL) {
     // handle error (not enough space)
 }
-// Use block here. The pointer passed to commit
-// should be <= block + size, e.g.:
+// Use block here, e.g.:
 actual_size = fread(block, 1, size, fp);
-rb_buffer_commit(&rb, block + actual_size);
+rb_buffer_commit(&rb, block, actual_size);
 ```
 
 Read (up to `max_size` bytes):
