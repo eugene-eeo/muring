@@ -17,10 +17,10 @@ void* rb_buffer_reserve(rb_buffer* rb, size_t size)
     //  1) r <= w -- normal setup
     //  2) r >  w -- write overtook read
     if (rb->r <= rb->w) {
+        rb->h = rb->size;
         if (rb->r == rb->w) {
             rb->r = 0;
             rb->w = 0;
-            rb->h = rb->size;
         }
         if (rb->h - rb->w >= size) {
             return rb->mem + rb->w;
