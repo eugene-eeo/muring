@@ -5,8 +5,8 @@
 void rb_buffer_init(rb_buffer* rb, void* mem, size_t size)
 {
     rb->mem = mem;
-    rb->r = 0; // offset of next index to read from
-    rb->w = 0; // offset of next index to write to
+    rb->r = 0; // next index to read from
+    rb->w = 0; // next index to write to
     rb->h = size;
     rb->size = size;
 }
@@ -29,14 +29,13 @@ void* rb_buffer_reserve(rb_buffer* rb, size_t size)
             return rb->mem + rb->w;
         }
     }
-    // not enough space
     return NULL;
 }
 
 void rb_buffer_commit(rb_buffer* rb, void* ptr)
 {
-    // wraparound, need to update watermark
     if (ptr < rb->mem + rb->w) {
+        // wraparound, need to update hole
         rb->h = rb->w;
     }
     rb->w = ptr - rb->mem;
@@ -64,7 +63,6 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
         size = MIN(rb->h - rb->r, max_size);
         rb->r += size;
         if (size > 0 && rb->r == rb->h) {
-            // if rb->r reaches 'end', skip ahead
             rb->r = 0;
             rb->h = rb->size;
         }
