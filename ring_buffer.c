@@ -17,6 +17,7 @@ void* rb_buffer_reserve(rb_buffer* rb, size_t size)
     //  1) r <= w -- normal setup
     //  2) r >  w -- write overtook read
     if (rb->r <= rb->w) {
+        // safe here: if r <= w, then h is already skipped past
         rb->h = rb->size;
         if (rb->r == rb->w) {
             rb->r = 0;

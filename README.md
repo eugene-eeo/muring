@@ -24,7 +24,8 @@ is ~inspired by~ taken from the original BipBuffer API.
 a reserve inside another reserve may return the same location
 in memory!
 
-More detailed examples:
+### Examples
+
 Need to first initialise the ring buffer:
 
 ```c
@@ -35,6 +36,9 @@ rb_buffer_init(&rb, buf, sz);
 ```
 
 Write:
+**Note:** if `commit` is not called, then the buffer acts
+as if nothing ever happened. You do not have to `commit`
+if the piece of memory isn't used successfully.
 
 ```c
 // size should be <= 512
