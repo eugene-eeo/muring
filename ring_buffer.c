@@ -5,8 +5,8 @@
 void rb_buffer_init(rb_buffer* rb, void* mem, size_t size)
 {
     rb->mem = mem;
-    rb->r = 0;
-    rb->w = 0;
+    rb->r = 0; // offset of next index to read from
+    rb->w = 0; // offset of next index to write to
     rb->h = size;
     rb->size = size;
 }
@@ -60,7 +60,7 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
         // ... | w | ... | r | ... | h |
         // (Note: we only get here iff at some point
         //  w was >= r, and h was set to *that* value
-        //  of w, so rb->h should be >= rb->r.)
+        //  of w, so rb->h >= rb->r.)
         size = MIN(rb->h - rb->r, max_size);
         rb->r += size;
         if (size > 0 && rb->r == rb->h) {

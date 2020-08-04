@@ -73,5 +73,53 @@ int main()
     b = rb_buffer_read(&rb, &sz, rb.size);
     assert(b == NULL);
     assert(sz == 0);
+
+    // should be reset
+    assert(rb.h == rb.size);
+    assert(rb.w == 0);
+    assert(rb.r == 0);
+
+    c = (char*) rb_buffer_reserve(&rb, 5);
+    assert(c != NULL);
+    for (int i = 0; i < 5; i++)
+        c[i] = i;
+    rb_buffer_commit(&rb, c + 5);
+
+    c = (char*) rb_buffer_read(&rb, &sz, 4);
+    assert(c != NULL);
+    assert(sz == 4);
+    for (int i = 0; i < 4; i++)
+        assert(c[i] == i);
+
+    c = (char*) rb_buffer_reserve(&rb, 3);
+    assert(c != NULL);
+    for (int i = 0; i < 3; i++)
+        c[i] = i + 5;
+    rb_buffer_commit(&rb, c + 3);
+    assert(rb.w == 8);
+    assert(rb.h == 8);
+
+    c = (char*) rb_buffer_reserve(&rb, 3);
+    assert(c != NULL);
+    for (int i = 0; i < 3; i++)
+        c[i] = i + 8;
+    rb_buffer_commit(&rb, c + 3);
+    assert(rb.w == 3);
+    assert(rb.h == 8);
+
+    c = (char*) rb_buffer_reserve(&rb, 1);
+    assert(c == NULL);
+
+    printf("%ld\n", rb_buffer_total(&rb));
+
+    int i = 4;
+    while ((c = (char*) rb_buffer_read(&rb, &sz, 8)) != NULL) {
+        assert(sz != 0);
+        for (size_t j = 0; j < sz; j++) {
+            assert(c[j] == i);
+            i++;
+        }
+    }
+
     free(buf);
 }
