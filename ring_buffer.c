@@ -46,7 +46,7 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
 {
     size_t size = 0;
     void* ptr = rb->mem + rb->r;
-    if (rb->w >= rb->r) {
+    if (rb->r <= rb->w) {
         // Case 1:
         // | r | ... | w |
         size = MIN(rb->w - rb->r, max_size);
@@ -69,7 +69,7 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
             rb->h = rb->size;
         }
         // Don't need to check if rb->r == rb->w.
-        // if rb->w == rb->r == rb->mem, it is handled.
+        // if rb->w == rb->r == 0, it is handled.
         // Otherwise rb->w < rb->r. (Case 2)
     }
     *actual_size = size;
@@ -78,7 +78,7 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
 
 size_t rb_buffer_total(rb_buffer* rb)
 {
-    if (rb->w >= rb->r) {
+    if (rb->r <= rb->w) {
         // Case 1:
         // ... | r | ... | w |
         return rb->w - rb->r;
