@@ -32,19 +32,20 @@ int main()
 
     c = (char*) rb_buffer_reserve(&rb, 6);
     assert(c != NULL);
-    c[0] = 1;
-    c[1] = 2;
-    c[2] = 3;
-    c[3] = 4;
-    c[4] = 5;
-    c[5] = 6;
+    for (int i = 0; i < 6; i++)
+        c[i] = i + 1;
     rb_buffer_commit(&rb, c + 6);
     assert(rb_buffer_total(&rb) == 6);
 
     // cannot alloc any more
     assert(rb_buffer_reserve(&rb, 3) == NULL);
 
+    printf("%ld\n", rb.r);
+    printf("%ld\n", rb.h);
+    printf("%ld\n", rb.w);
+
     c = (char*) rb_buffer_read(&rb, &sz, 5);
+    printf("%ld\n", sz);
     assert(sz == 5);
     assert(c != NULL);
     assert(c[0] == 1);
