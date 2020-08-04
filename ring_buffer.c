@@ -17,6 +17,11 @@ void* rb_buffer_reserve(rb_buffer* rb, size_t size)
     //  1) r <= w -- normal setup
     //  2) r >  w -- write overtook read
     if (rb->r <= rb->w) {
+        if (rb->r == rb->w) {
+            rb->r = 0;
+            rb->w = 0;
+            rb->h = rb->size;
+        }
         if (rb->h - rb->w >= size) {
             return rb->mem + rb->w;
         }
@@ -50,10 +55,6 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
         // | r | ... | w |
         size = MIN(rb->w - rb->r, max_size);
         rb->r += size;
-        if (size > 0 && rb->r == rb->w) {
-            rb->r = 0;
-            rb->w = 0;
-        }
     } else {
         // Case 2:
         // ... | w | ... | r | ... | h |
@@ -61,13 +62,8 @@ void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
         // set to *that* value of w, so rb->h >= rb->r.
         size = MIN(rb->h - rb->r, max_size);
         rb->r += size;
-        if (size > 0 && rb->r == rb->h) {
+        if (rb->r == rb->h)
             rb->r = 0;
-            rb->h = rb->size;
-        }
-        // Don't need to check if rb->r == rb->w.
-        // If rb->w == rb->r == 0, it is handled.
-        // Otherwise, rb->w < rb->r. (Case 2)
     }
     *actual_size = size;
     return size > 0 ? ptr : NULL;
@@ -77,7 +73,7 @@ size_t rb_buffer_total(rb_buffer* rb)
 {
     if (rb->r <= rb->w) {
         // Case 1:
-        // ... | r | ... | w |
+        // ... | r | ... | w | ...
         return rb->w - rb->r;
     } else {
         // Case 2:

@@ -75,11 +75,6 @@ int main()
     assert(b == NULL);
     assert(sz == 0);
 
-    // should be reset
-    assert(rb.h == rb.size);
-    assert(rb.w == 0);
-    assert(rb.r == 0);
-
     c = (char*) rb_buffer_reserve(&rb, 5);
     assert(c != NULL);
     for (int i = 0; i < 5; i++)
