@@ -41,19 +41,11 @@ int main()
     // cannot alloc any more
     assert(rb_buffer_reserve(&rb, 3) == NULL);
 
-    printf("%ld\n", rb.r);
-    printf("%ld\n", rb.h);
-    printf("%ld\n", rb.w);
-
     c = rb_buffer_read(&rb, &sz, 5);
-    printf("%ld\n", sz);
     assert(sz == 5);
     assert(c != NULL);
-    assert(c[0] == 1);
-    assert(c[1] == 2);
-    assert(c[2] == 3);
-    assert(c[3] == 4);
-    assert(c[4] == 5);
+    for (int i = 0; i < 5; i++)
+        assert(c[i] == i + 1);
     assert(rb_buffer_total(&rb) == 1);
 
     c = rb_buffer_reserve(&rb, 4);
@@ -107,8 +99,6 @@ int main()
     c = rb_buffer_reserve(&rb, 1);
     assert(c == NULL);
 
-    printf("%ld\n", rb_buffer_total(&rb));
-
     int i = 4;
     while ((c = rb_buffer_read(&rb, &sz, 8)) != NULL) {
         assert(sz != 0);
@@ -117,6 +107,7 @@ int main()
             i++;
         }
     }
+    assert(i == 11);
 
     free(buf);
 }
