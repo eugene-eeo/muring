@@ -1,8 +1,10 @@
+#include <stddef.h>
+#include <stdint.h>
 #include "ring_buffer.h"
 
 #define MIN(a, b) (((a) > (b)) ? (b) : (a))
 
-void rb_buffer_init(rb_buffer* rb, void* mem, size_t size)
+void rb_buffer_init(rb_buffer* rb, uint8_t* mem, size_t size)
 {
     rb->mem = mem;
     rb->r = 0; // next index to read from
@@ -11,14 +13,13 @@ void rb_buffer_init(rb_buffer* rb, void* mem, size_t size)
     rb->size = size;
 }
 
-void* rb_buffer_reserve(rb_buffer* rb, size_t size)
+uint8_t* rb_buffer_reserve(rb_buffer* rb, size_t size)
 {
     // There are two possible states:
     //  1) r <= w -- normal setup
     //  2) r >  w -- write overtook read
     if (rb->r <= rb->w) {
-        // safe here: if r <= w, then h is already skipped past
-        rb->h = rb->size;
+        rb->h = rb->size; // safe here: if r <= w, we've skipped past h
         if (rb->r == rb->w) {
             rb->r = 0;
             rb->w = 0;
@@ -38,7 +39,7 @@ void* rb_buffer_reserve(rb_buffer* rb, size_t size)
     return NULL;
 }
 
-void rb_buffer_commit(rb_buffer* rb, void* ptr, size_t size)
+void rb_buffer_commit(rb_buffer* rb, uint8_t* ptr, size_t size)
 {
     if (size == 0) {
         return;
@@ -50,7 +51,7 @@ void rb_buffer_commit(rb_buffer* rb, void* ptr, size_t size)
     rb->w = (ptr - rb->mem) + size;
 }
 
-void* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
+uint8_t* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
 {
     size_t size = 0;
     void* ptr = rb->mem + rb->r;
