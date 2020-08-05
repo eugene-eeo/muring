@@ -6,7 +6,7 @@
 
 int main()
 {
-    void* buf = malloc(8);
+    uint8_t* buf = malloc(8);
     if (buf == NULL) {
         printf("buf == NULL\n");
         exit(1);
