@@ -45,7 +45,6 @@ void rb_buffer_commit(rb_buffer* rb, uint8_t* ptr, size_t size)
         return;
     }
     if (ptr < rb->mem + rb->w) {
-        // wraparound, need to update hole
         rb->h = rb->w;
     }
     rb->w = (ptr - rb->mem) + size;
@@ -54,7 +53,7 @@ void rb_buffer_commit(rb_buffer* rb, uint8_t* ptr, size_t size)
 uint8_t* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
 {
     size_t size = 0;
-    void* ptr = rb->mem + rb->r;
+    uint8_t* ptr = rb->mem + rb->r;
     if (rb->r <= rb->w) {
         // Case 1:
         // | r | ... | w |

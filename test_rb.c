@@ -16,7 +16,6 @@ int main()
     rb_buffer_init(&rb, buf, 8);
 
     size_t sz;
-    void* b;
 
     // Check that rb->r is reset
     uint8_t* c = rb_buffer_reserve(&rb, 6);
@@ -64,8 +63,8 @@ int main()
         assert(c[0] == i);
     }
 
-    b = rb_buffer_read(&rb, &sz, rb.size);
-    assert(b == NULL);
+    c = rb_buffer_read(&rb, &sz, rb.size);
+    assert(c == NULL);
     assert(sz == 0);
 
     c = rb_buffer_reserve(&rb, 5);
