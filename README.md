@@ -1,74 +1,50 @@
 ## `rb_buffer`
 
-Simple ring-buffer similar in design to a [BipBuffer](https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist),
+Simple FIFO ring buffer that allocates contiguous slices
+of memory, similar to a [BipBuffer](https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist),
 and inspired by [this article](https://andrea.lattuada.me/blog/2019/the-design-and-implementation-of-a-lock-free-ring-buffer-with-contiguous-reservations.html).
-The API is very simple (not thread safe):
+The API is very simple (not thread-safe):
 
-```c
-void     rb_buffer_init   (rb_buffer* rb, uint8_t* mem, size_t size);
-uint8_t* rb_buffer_reserve(rb_buffer* rb, size_t size);
-void     rb_buffer_commit (rb_buffer* rb, uint8_t* ptr, size_t size);
-uint8_t* rb_buffer_read   (rb_buffer* rb, size_t* actual_size, size_t max_size);
-size_t   rb_buffer_total  (rb_buffer* rb);
-```
+    void     rb_buffer_init   (rb_buffer* rb, uint8_t* mem, size_t size);
+    uint8_t* rb_buffer_reserve(rb_buffer* rb, size_t size);
+    void     rb_buffer_commit (rb_buffer* rb, uint8_t* ptr, size_t size);
+    uint8_t* rb_buffer_read   (rb_buffer* rb, size_t* actual_size, size_t max_size);
+    size_t   rb_buffer_total  (rb_buffer* rb);
 
-To write something into the buffer, you first have to
-_reserve_ space -- and if it is available in the buffer,
-the buffer will give you a contiguous slice of memory.
+To write a into the buffer, you first need to `reserve`
+some amount of space; this gives you a pointer that you
+can write to. You can advertise to IO functions (e.g.
+`read`) that you have that much space for use.
 
-After using that slice, you then need to _commit_ the
-actual amount of data you wrote -- this usage pattern
-is ~inspired by~ taken from the original BipBuffer API.
+After writing, you then need to `commit` the actual amount
+of data you wrote. A `commit` of size 0 is a no-op.
+**Note:** you cannot nest `reserve` and `commit` calls;
+essentially only the _last_ `reserve` has any real effect.
 
-**Note:** you cannot nest `reserve` or `commit` functions;
-a reserve inside another reserve may return the same location
-in memory!
+Example usage:
 
-### Examples
+    // First initialise the buffer
+    uint8_t* buffer = malloc(size);
+    rb_buffer rb;
+    rb_buffer_init(&rb, buffer, size);
 
-Need to first initialise the ring buffer:
+    // Get a contiguous slice of memory
+    uint8_t* slice = rb_buffer_reserve(&rb, 100);
+    if (slice == NULL) {
+        // Handle error (not enough memory)
+    }
+    // Use slice here: the committed size should
+    // be <= the allocated size, e.g.:
+    size_t n = fread(slice, 1, 100, fp);
+    rb_buffer_commit(&rb, slice, n);
 
-```c
-size_t sz = 512;
-uint8_t* buf = malloc(sz);
-rb_buffer rb;
-rb_buffer_init(&rb, buf, sz);
-```
+    // Get buffer unread size
+    size_t total = rb_buffer_total(&rb);
+    assert(total == n);
 
-Write:
-**Note:** if `commit` is not called, then the buffer acts
-as if nothing ever happened. You do not have to `commit`
-if the piece of memory isn't used successfully.
-
-```c
-// size should be <= 512
-uint8_t* block = rb_buffer_reserve(&rb, size);
-if (block == NULL) {
-    // handle error (not enough space)
-}
-// Use block here, e.g.:
-actual_size = fread(block, 1, size, fp);
-rb_buffer_commit(&rb, block, actual_size);
-```
-
-Read (up to `max_size` bytes):
-
-```c
-size_t sz;
-uint8_t* block;
-block = rb_buffer_read(&rb, *sz, max_size);
-if (block != NULL) {
-    // sz <= max_size
-    // do your thing
-}
-```
-
-To empty the buffer:
-
-```c
-size_t sz;
-uint8_t* block;
-while ((block = rb_buffer_read(&rb, *sz, rb.size)) != NULL) {
-    // do your thing here
-}
-```
+    // Read max of 100 bytes from buffer (FIFO)
+    size_t sz;
+    uint8_t* slice = rb_buffer_read(&rb, *sz, 100);
+    if (slice != NULL) {
+        // do your thing
+    }
