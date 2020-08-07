@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <stdatomic.h>
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MIN(a, b)      ((a) < (b) ? (a) : (b))
+#define STORE(p, v, m) atomic_store_explicit(p, v, m)
+#define LOAD(p, m)     atomic_load_explicit(p, m)
 
 void rb_buffer_init(rb_buffer* rb, uint8_t* mem, size_t size)
 {
@@ -16,8 +18,8 @@ void rb_buffer_init(rb_buffer* rb, uint8_t* mem, size_t size)
 
 int rb_buffer_reserve(rb_buffer* rb, rb_reservation* rs, size_t size)
 {
-    const size_t w = atomic_load_explicit(&rb->w, memory_order_relaxed);
-    const size_t r = atomic_load_explicit(&rb->r, memory_order_acquire);
+    const size_t w = LOAD(&rb->w, memory_order_relaxed);
+    const size_t r = LOAD(&rb->r, memory_order_acquire);
     if (w >= r) {
         if (rb->size - w >= size) {
             rs->buf = rb->mem + w;
@@ -46,16 +48,16 @@ void rb_buffer_commit(rb_buffer* rb, rb_reservation* rs, size_t size)
 {
     if (size > 0) {
         if (rs->wrap) {
-            atomic_store_explicit(&rb->h, rs->last, memory_order_relaxed);
+            STORE(&rb->h, rs->last, memory_order_relaxed);
         }
-        atomic_store_explicit(&rb->w, (rs->buf - rb->mem) + size, memory_order_release);
+        STORE(&rb->w, (rs->buf - rb->mem) + size, memory_order_release);
     }
 }
 
 uint8_t* rb_buffer_read(rb_buffer* rb, size_t size)
 {
-    size_t r = atomic_load_explicit(&rb->r, memory_order_relaxed);
-    const size_t w = atomic_load_explicit(&rb->w, memory_order_acquire);
+    size_t r = LOAD(&rb->r, memory_order_relaxed);
+    const size_t w = LOAD(&rb->w, memory_order_acquire);
 retry:
     ;
     uint8_t* ptr = rb->mem + r;
@@ -64,7 +66,7 @@ retry:
             return ptr;
         }
     } else {
-        const size_t h = atomic_load_explicit(&rb->h, memory_order_relaxed);
+        const size_t h = LOAD(&rb->h, memory_order_relaxed);
         if (r == h) {
             r = 0;
             goto retry;
@@ -78,7 +80,7 @@ retry:
 
 void rb_buffer_consume(rb_buffer* rb, uint8_t* ptr, size_t size)
 {
-    atomic_store_explicit(
+    STORE(
         &rb->r,
         (ptr - rb->mem) + size,
         memory_order_release

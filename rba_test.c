@@ -49,5 +49,19 @@ int main()
     // only have one byte available for reading
     assert(rb_buffer_read(&rb, 2) == NULL);
 
+    b = rb_buffer_read(&rb, 1);
+    assert(b != NULL);
+    assert(memcmp(b, "y", 1) == 0);
+    rb_buffer_consume(&rb, b, 1);
+
     // test wraparound
+    x = rb_buffer_reserve(&rb, &rs, 5);
+    assert(x);
+    memcpy(rs.buf, "abcde", 5);
+    rb_buffer_commit(&rb, &rs, 5);
+
+    b = rb_buffer_read(&rb, 3);
+    assert(b != NULL);
+    assert(memcmp(b, "abc", 3) == 0);
+    rb_buffer_consume(&rb, b, 3);
 }
