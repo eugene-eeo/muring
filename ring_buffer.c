@@ -52,6 +52,8 @@ void rb_buffer_commit(rb_buffer* rb, uint8_t* ptr, size_t size)
 
 uint8_t* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
 {
+retry:
+    ;
     size_t size = 0;
     uint8_t* ptr = rb->mem + rb->r;
     if (rb->r <= rb->w) {
@@ -66,7 +68,7 @@ uint8_t* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
         // set to *that* value of w, so rb->h >= rb->r.
         if (rb->r == rb->h) {
             rb->r = 0;
-            return rb_buffer_read(rb, actual_size, max_size);
+            goto retry;
         }
         size = MIN(rb->h - rb->r, max_size);
         rb->r += size;
