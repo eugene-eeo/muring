@@ -1,87 +1,103 @@
+#include "ring_buffer_atomic.h"
 #include <stddef.h>
 #include <stdint.h>
-#include "ring_buffer.h"
+#include <stdatomic.h>
 
-#define MIN(a, b) (((a) > (b)) ? (b) : (a))
+#ifdef RB_ATOMIC
+#define STORE(p, v, m) atomic_store_explicit(p, v, m)
+#define LOAD(p, m)     atomic_load_explicit(p, m)
+#else
+#define STORE(p, v, _) (*(p) = v)
+#define LOAD(p, _)     (*(p))
+#endif
 
 void rb_buffer_init(rb_buffer* rb, uint8_t* mem, size_t size)
 {
     rb->mem = mem;
-    rb->r = 0; // next index to read from
-    rb->w = 0; // next index to write to
+    rb->r = 0;
+    rb->w = 0;
     rb->h = size;
     rb->size = size;
 }
 
-uint8_t* rb_buffer_reserve(rb_buffer* rb, size_t size)
+int rb_buffer_reserve(rb_buffer* rb, rb_reservation* rs, size_t size)
 {
-    // There are two possible states:
-    //  1) r <= w -- normal setup
-    //  2) r >  w -- write overtook read
-    if (rb->r <= rb->w) {
-        rb->h = rb->size; // safe here: if r <= w, we've skipped past h
-        if (rb->r == rb->w) {
+    // There are two possible cases:
+    //  1. r <= w -- 'normal' setup with no wraparound
+    //  2. r > w  -- 'abnormal' setup with wraparound
+    const size_t w = LOAD(&rb->w, memory_order_relaxed);
+    const size_t r = LOAD(&rb->r, memory_order_acquire);
+    if (w >= r) {
+        #ifndef RB_ATOMIC
+        if (r == w) {
+            // we are allowed to change r when we are in sync mode
+            // so this allows us to use the whole buffer instead of
+            // potentially half of it (worse case).
             rb->r = 0;
             rb->w = 0;
         }
-        if (rb->h - rb->w >= size) {
-            return rb->mem + rb->w;
+        #endif
+        if (rb->size - w >= size) {
+            rs->buf = rb->mem + w;
+            rs->wrap = 0;
+            rs->last = w;
+            return 1;
         }
-        // otherwise check the left side of rb->r
-        if (rb->r > size) {
-            return rb->mem;
+        if (r > size) {
+            rs->buf = rb->mem;
+            rs->wrap = 1;
+            rs->last = w;
+            return 1;
         }
     } else {
-        if (rb->r - rb->w > size) {
-            return rb->mem + rb->w;
+        if (r - w > size) {
+            rs->buf = rb->mem + w;
+            rs->wrap = 0;
+            rs->last = w;
+            return 1;
         }
     }
-    return NULL;
+    return 0;
 }
 
-void rb_buffer_commit(rb_buffer* rb, uint8_t* ptr, size_t size)
+void rb_buffer_commit(rb_buffer* rb, rb_reservation* rs, size_t size)
 {
-    if (size == 0) {
-        return;
+    if (size > 0) {
+        if (rs->wrap) {
+            STORE(&rb->h, rs->last, memory_order_relaxed);
+        }
+        STORE(&rb->w, (rs->buf - rb->mem) + size, memory_order_release);
     }
-    if (ptr < rb->mem + rb->w) {
-        rb->h = rb->w;
-    }
-    rb->w = (ptr - rb->mem) + size;
 }
 
-uint8_t* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
+uint8_t* rb_buffer_read(rb_buffer* rb, size_t* actual_size)
 {
     size_t size = 0;
-    uint8_t* ptr = rb->mem + rb->r;
-    if (rb->r <= rb->w) {
-        // Case 1:
-        // | r | ... | w |
-        size = MIN(rb->w - rb->r, max_size);
-        rb->r += size;
+    size_t r = LOAD(&rb->r, memory_order_relaxed);
+    const size_t w = LOAD(&rb->w, memory_order_acquire);
+retry:
+    if (w >= r) {
+        size = w - r;
     } else {
-        // Case 2:
-        // ... | w | ... | r | ... | h |
-        // Note: we only get here iff at some point w was >= r, and h was
-        // set to *that* value of w, so rb->h >= rb->r.
-        size = MIN(rb->h - rb->r, max_size);
-        rb->r += size;
-        if (rb->r == rb->h)
-            rb->r = 0;
+        // Note: here, rb->r <= rb->h, since we reach here if at
+        // some point we get a wraparound, and h was set to *that*
+        // value of w.
+        const size_t h = LOAD(&rb->h, memory_order_relaxed);
+        if (r == h) {
+            r = 0;
+            goto retry;
+        }
+        size = h - r;
     }
     *actual_size = size;
-    return size > 0 ? ptr : NULL;
+    return (size > 0) ? (rb->mem + r) : NULL;
 }
 
-size_t rb_buffer_total(rb_buffer* rb)
+void rb_buffer_consume(rb_buffer* rb, uint8_t* ptr, size_t size)
 {
-    if (rb->r <= rb->w) {
-        // Case 1:
-        // ... | r | ... | w | ...
-        return rb->w - rb->r;
-    } else {
-        // Case 2:
-        // ... | w | ... | r | ... | h |
-        return rb->h - rb->r + rb->w;
-    }
+    STORE(
+        &rb->r,
+        (ptr - rb->mem) + size,
+        memory_order_release
+    );
 }
