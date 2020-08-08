@@ -7,6 +7,7 @@
 
 int main()
 {
+    size_t sz;
     uint8_t* b;
     uint8_t* block = malloc(8);
     rb_buffer rb;
@@ -18,8 +19,9 @@ int main()
     memcpy(rs.buf, "abcde", 5);
     rb_buffer_commit(&rb, &rs, 5);
 
-    b = rb_buffer_read(&rb, 4);
+    b = rb_buffer_read(&rb, &sz, 4);
     assert(b != NULL);
+    assert(sz == 4);
     assert(memcmp(b, "abcd", 4) == 0);
     rb_buffer_consume(&rb, b, 4);
 
@@ -30,8 +32,9 @@ int main()
     rb_buffer_commit(&rb, &rs, 3);
 
     // read the full buffer...
-    b = rb_buffer_read(&rb, 4);
+    b = rb_buffer_read(&rb, &sz, 4);
     assert(b != NULL);
+    assert(sz == 4);
     assert(memcmp(b, "efgh", 4) == 0);
     rb_buffer_consume(&rb, b, 4);
 
@@ -41,16 +44,16 @@ int main()
     memcpy(rs.buf, "six_ty", 6);
     rb_buffer_commit(&rb, &rs, 6);
 
-    b = rb_buffer_read(&rb, 5);
+    b = rb_buffer_read(&rb, &sz, 5);
     assert(b != NULL);
+    assert(sz == 5);
     assert(memcmp(b, "six_t", 5) == 0);
     rb_buffer_consume(&rb, b, 5);
 
     // only have one byte available for reading
-    assert(rb_buffer_read(&rb, 2) == NULL);
-
-    b = rb_buffer_read(&rb, 1);
+    b = rb_buffer_read(&rb, &sz, 2);
     assert(b != NULL);
+    assert(sz == 1);
     assert(memcmp(b, "y", 1) == 0);
     rb_buffer_consume(&rb, b, 1);
 
@@ -60,8 +63,9 @@ int main()
     memcpy(rs.buf, "abcde", 5);
     rb_buffer_commit(&rb, &rs, 5);
 
-    b = rb_buffer_read(&rb, 3);
+    b = rb_buffer_read(&rb, &sz, 3);
     assert(b != NULL);
+    assert(sz == 3);
     assert(memcmp(b, "abc", 3) == 0);
     rb_buffer_consume(&rb, b, 3);
 }

@@ -54,28 +54,26 @@ void rb_buffer_commit(rb_buffer* rb, rb_reservation* rs, size_t size)
     }
 }
 
-uint8_t* rb_buffer_read(rb_buffer* rb, size_t size)
+uint8_t* rb_buffer_read(rb_buffer* rb, size_t* actual_size, size_t max_size)
 {
+    size_t size = 0;
     size_t r = LOAD(&rb->r, memory_order_relaxed);
     const size_t w = LOAD(&rb->w, memory_order_acquire);
 retry:
     ;
     uint8_t* ptr = rb->mem + r;
     if (w >= r) {
-        if (w - r >= size) {
-            return ptr;
-        }
+        size = w - r;
     } else {
         const size_t h = LOAD(&rb->h, memory_order_relaxed);
         if (r == h) {
             r = 0;
             goto retry;
         }
-        if (h - r >= size) {
-            return ptr;
-        }
+        size = h - r;
     }
-    return NULL;
+    *actual_size = MIN(size, max_size);
+    return (size > 0) ? ptr : NULL;
 }
 
 void rb_buffer_consume(rb_buffer* rb, uint8_t* ptr, size_t size)
