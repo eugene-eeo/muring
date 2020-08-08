@@ -1,4 +1,4 @@
-#include "ring_buffer_atomic.h"
+#include "ring_buffer.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdatomic.h>
