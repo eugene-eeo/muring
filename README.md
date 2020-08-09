@@ -31,7 +31,7 @@ There are two modes:
 2. Lock-free mode (single producer and single consumer,
    needs to be compiled with `-DRB_ATOMIC`)
 
-       $ gcc ... ring_buffer.c -DRB_ATOMIC
+       $ gcc ... rb_buffer.c -DRB_ATOMIC
 
    In lock-free mode, you should allocate ~(2n + 1) bytes
    for the buffer, where n is the size of the largest chunk

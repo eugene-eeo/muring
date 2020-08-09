@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
-#include "ring_buffer.h"
+#include "rb_buffer.h"
 
 #ifdef RB_ATOMIC
 #include <pthread.h>
