@@ -3,7 +3,7 @@
 Simple FIFO ring buffer that allocates contiguous slices
 of memory, similar to a [BipBuffer](https://www.codeproject.com/Articles/3479/The-Bip-Buffer-The-Circular-Buffer-with-a-Twist),
 and inspired by [this article](https://andrea.lattuada.me/blog/2019/the-design-and-implementation-of-a-lock-free-ring-buffer-with-contiguous-reservations.html).
-The API is very simple (not thread-safe):
+The API is very simple:
 
     void     rb_buffer_init   (rb_buffer* rb, uint8_t* mem, size_t size);
     int      rb_buffer_reserve(rb_buffer* rb, rb_reservation* rs, size_t size);
@@ -24,6 +24,18 @@ essentially only the _last_ `reserve` has any real effect.
 When reading from the buffer, first call `read` to get a
 contiguous slice of memory. Then you should call `consume`
 to inform the buffer of your reading progress.
+
+There are two modes:
+
+1. Non-thread safe (default)
+2. Lock-free mode (single producer and single consumer,
+   needs to be compiled with `-DRB_ATOMIC`)
+
+       $ gcc ... ring_buffer.c -DRB_ATOMIC
+
+   In lock-free mode, you should allocate ~(2n + 1) bytes
+   for the buffer, where n is the size of the largest chunk
+   you want to allocate.
 
 Example usage:
 
@@ -55,3 +67,18 @@ Example usage:
     // sz contains size of slice
     // inform buffer of read progress
     rb_buffer_consume(&rb, slice, n);
+
+Spin waiting example:
+
+    // Wait until we can write 100 bytes into the buffer
+    while (!rb_buffer_reserve(&rb, &rs, size)) {
+    }
+    // use rs.buf here
+
+    // Wait until we can read 100 bytes from buffer
+    size_t sz;
+    uint8_t* b;
+    while ((b = rb_buffer_read(&rb, &sz)) == NULL || sz < size) {
+    }
+    // use b here
+    rb_buffer_consume(...);
