@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdatomic.h>
 
-#ifdef RB_ATOMIC
+#ifdef MURING_ATOMIC
 #define STORE(p, v, m) atomic_store_explicit(p, v, m)
 #define LOAD(p, m)     atomic_load_explicit(p, m)
 #else
