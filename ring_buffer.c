@@ -95,9 +95,5 @@ retry:
 
 void rb_buffer_consume(rb_buffer* rb, uint8_t* ptr, size_t size)
 {
-    STORE(
-        &rb->r,
-        (ptr - rb->mem) + size,
-        memory_order_release
-    );
+    STORE(&rb->r, (ptr - rb->mem) + size, memory_order_release);
 }
