@@ -28,7 +28,7 @@ int rb_buffer_reserve(rb_buffer* rb, rb_reservation* rs, size_t size)
     const size_t w = LOAD(&rb->w, memory_order_relaxed);
     const size_t r = LOAD(&rb->r, memory_order_acquire);
     if (w >= r) {
-        #ifndef RB_ATOMIC
+#ifndef RB_ATOMIC
         if (r == w) {
             // we are allowed to change r when we are in sync mode
             // so this allows us to use the whole buffer instead of
@@ -36,7 +36,7 @@ int rb_buffer_reserve(rb_buffer* rb, rb_reservation* rs, size_t size)
             rb->r = 0;
             rb->w = 0;
         }
-        #endif
+#endif
         if (rb->size - w >= size) {
             rs->buf = rb->mem + w;
             rs->wrap = 0;
