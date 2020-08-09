@@ -45,7 +45,7 @@ Example usage:
     muring_init(&ctx, buffer, size);
 
     // Get a contiguous slice of memory
-    rb_reservation rs;
+    muring_reservation rs;
     if (!muring_reserve(&ctx, &rs, 100)) {
         // Handle error (not enough memory)
     }
