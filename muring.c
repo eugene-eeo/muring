@@ -1,4 +1,4 @@
-#include "rb_buffer.h"
+#include "muring.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdatomic.h>
@@ -11,47 +11,47 @@
 #define LOAD(p, _)     (*(p))
 #endif
 
-void rb_buffer_init(rb_buffer* rb, uint8_t* mem, size_t size)
+void muring_init(muring_buffer* ctx, uint8_t* mem, size_t size)
 {
-    rb->mem = mem;
-    rb->r = 0;
-    rb->w = 0;
-    rb->h = size;
-    rb->size = size;
+    ctx->mem = mem;
+    ctx->r = 0;
+    ctx->w = 0;
+    ctx->h = size;
+    ctx->size = size;
 }
 
-int rb_buffer_reserve(rb_buffer* rb, rb_reservation* rs, size_t size)
+int muring_reserve(muring_buffer* ctx, muring_reservation* rs, size_t size)
 {
     // There are two possible cases:
     //  1. r <= w -- 'normal' setup with no wraparound
     //  2. r > w  -- 'abnormal' setup with wraparound
-    const size_t w = LOAD(&rb->w, memory_order_relaxed);
-    const size_t r = LOAD(&rb->r, memory_order_acquire);
+    const size_t w = LOAD(&ctx->w, memory_order_relaxed);
+    const size_t r = LOAD(&ctx->r, memory_order_acquire);
     if (w >= r) {
-#ifndef RB_ATOMIC
+#ifndef MURING_ATOMIC
         if (r == w) {
             // we are allowed to change r when we are in sync mode
             // so this allows us to use the whole buffer instead of
             // potentially half of it (worse case).
-            rb->r = 0;
-            rb->w = 0;
+            ctx->r = 0;
+            ctx->w = 0;
         }
 #endif
-        if (rb->size - w >= size) {
-            rs->buf = rb->mem + w;
+        if (ctx->size - w >= size) {
+            rs->buf = ctx->mem + w;
             rs->wrap = 0;
             rs->last = w;
             return 1;
         }
         if (r > size) {
-            rs->buf = rb->mem;
+            rs->buf = ctx->mem;
             rs->wrap = 1;
             rs->last = w;
             return 1;
         }
     } else {
         if (r - w > size) {
-            rs->buf = rb->mem + w;
+            rs->buf = ctx->mem + w;
             rs->wrap = 0;
             rs->last = w;
             return 1;
@@ -60,29 +60,29 @@ int rb_buffer_reserve(rb_buffer* rb, rb_reservation* rs, size_t size)
     return 0;
 }
 
-void rb_buffer_commit(rb_buffer* rb, rb_reservation* rs, size_t size)
+void muring_commit(muring_buffer* ctx, muring_reservation* rs, size_t size)
 {
     if (size > 0) {
         if (rs->wrap) {
-            STORE(&rb->h, rs->last, memory_order_relaxed);
+            STORE(&ctx->h, rs->last, memory_order_relaxed);
         }
-        STORE(&rb->w, (rs->buf - rb->mem) + size, memory_order_release);
+        STORE(&ctx->w, (rs->buf - ctx->mem) + size, memory_order_release);
     }
 }
 
-uint8_t* rb_buffer_read(rb_buffer* rb, size_t* size)
+uint8_t* muring_read(muring_buffer* ctx, size_t* size)
 {
     size_t sz = 0;
-    size_t r = LOAD(&rb->r, memory_order_relaxed);
-    const size_t w = LOAD(&rb->w, memory_order_acquire);
+    size_t r = LOAD(&ctx->r, memory_order_relaxed);
+    const size_t w = LOAD(&ctx->w, memory_order_acquire);
 retry:
     if (w >= r) {
         sz = w - r;
     } else {
-        // Note: here, rb->r <= rb->h, since we reach here if at
+        // Note: here, ctx->r <= ctx->h, since we reach here if at
         // some point we get a wraparound, and h was set to *that*
         // value of w.
-        const size_t h = LOAD(&rb->h, memory_order_relaxed);
+        const size_t h = LOAD(&ctx->h, memory_order_relaxed);
         if (r == h) {
             r = 0;
             goto retry;
@@ -90,10 +90,10 @@ retry:
         sz = h - r;
     }
     *size = sz;
-    return (sz > 0) ? (rb->mem + r) : NULL;
+    return (sz > 0) ? (ctx->mem + r) : NULL;
 }
 
-void rb_buffer_consume(rb_buffer* rb, uint8_t* ptr, size_t size)
+void muring_consume(muring_buffer* ctx, uint8_t* ptr, size_t size)
 {
-    STORE(&rb->r, (ptr - rb->mem) + size, memory_order_release);
+    STORE(&ctx->r, (ptr - ctx->mem) + size, memory_order_release);
 }

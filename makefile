@@ -1,5 +1,5 @@
 tests:
-	gcc rb_buffer.c test.c -o ./test
-	gcc rb_buffer.c test.c -DRB_ATOMIC -lpthread -o ./test_atomic
+	gcc muring.c test.c -o ./test
+	gcc muring.c test.c -DMURING_ATOMIC -lpthread -o ./test_atomic
 	./test
 	./test_atomic
