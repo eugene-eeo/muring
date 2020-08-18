@@ -1,12 +1,13 @@
-#ifndef MURING_H
-#define MURING_H
+#ifndef _MURING_H
+#define _MURING_H
 
 #include <stddef.h>
 #include <stdint.h>
 #include <stdatomic.h>
 
 typedef struct {
-    uint8_t*      mem;
+    uint8_t* mem;
+    size_t   size;
 #ifdef MURING_ATOMIC
     atomic_size_t r;
     atomic_size_t w;
@@ -16,7 +17,6 @@ typedef struct {
     size_t w;
     size_t h;
 #endif
-    size_t size;
 } muring_buffer;
 
 typedef struct {

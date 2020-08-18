@@ -30,9 +30,9 @@ int muring_reserve(muring_buffer* ctx, muring_reservation* rs, size_t size)
     if (w >= r) {
 #ifndef MURING_ATOMIC
         if (r == w) {
-            // we are allowed to change r when we are in sync mode
-            // so this allows us to use the whole buffer instead of
-            // potentially half of it (worse case).
+            // we are allowed to change r when we are in sync mode,
+            // this allows us to use the whole buffer (instead of
+            // half of it in the worst case).
             ctx->r = 0;
             ctx->w = 0;
         }
@@ -80,8 +80,8 @@ retry:
         sz = w - r;
     } else {
         // Note: here, ctx->r <= ctx->h, since we reach here if at
-        // some point we get a wraparound, and h was set to *that*
-        // value of w.
+        // some point we get a wraparound (w >= r), and h was set
+        // to *that* value of w.
         const size_t h = LOAD(&ctx->h, memory_order_relaxed);
         if (r == h) {
             r = 0;
